@@ -4,11 +4,15 @@
 #include "src/basics/macros.h"
 #include "src/basics/io.h"
 #include "src/basics/stateMachineClass.h"
+#include "src/modules/Adafruit_PWMServoDriver.h"
 
 static StateMachine sm ;
 
+Adafruit_PWMServoDriver pwmDriver ;
+
 // VARIABLES
 static uint16_t redPwm, greenPwm, bluePwm, whitePwm;
+bool flash ;
 
 struct
 {
@@ -19,23 +23,24 @@ struct
     uint16_t coolWhite ;
 } set, current ;
 
-const int dayTime = 60000 ;         // time of each day section in ms
-const int lightInterval = 100 ;
+const int dayTime = 5000 ;         // time of each day section in ms
+const int lightInterval = 10 ;
 
 // FUNCTIONS
 void updateLighting()
 {
-    if( set.red < current.red ) current.red -- ;
-    if( set.red > current.red ) current.red ++ ;
+REPEAT_MS( lightInterval ) ;
+    if( set.red < current.red )             current.red -- ;
+    if( set.red > current.red )             current.red ++ ;
     
-    if( set.green < current.green ) current.green -- ;
-    if( set.green > current.green ) current.green ++ ;
+    if( set.green < current.green )         current.green -- ;
+    if( set.green > current.green )         current.green ++ ;
     
-    if( set.blue < current.blue ) current.blue -- ;
-    if( set.blue > current.blue ) current.blue ++ ;
+    if( set.blue < current.blue )           current.blue -- ;
+    if( set.blue > current.blue )           current.blue ++ ;
     
-    if( set.white < current.white ) current.white -- ;
-    if( set.white > current.white ) current.white ++ ;
+    if( set.white < current.white )         current.white -- ;
+    if( set.white > current.white )         current.white ++ ;
     
     if( set.coolWhite < current.coolWhite ) current.coolWhite -- ;
     if( set.coolWhite > current.coolWhite ) current.coolWhite ++ ;
@@ -44,7 +49,7 @@ void updateLighting()
     Serial.print(" green: ");       Serial.print(  current.green);
     Serial.print(" blue: ");        Serial.print(  current.blue);
     Serial.print(" white: ");       Serial.print(  current.white);
-    Serial.print(" coolWhite: ");   Serial.println(current.coolWhitePin);
+    Serial.print(" coolWhite: ");   Serial.println(current.coolWhite);
 
     if( flash )
     {
@@ -62,6 +67,7 @@ void updateLighting()
         pwmDriver.setPWM(whitePin,      0,   current.white );
         pwmDriver.setPWM(coolWhitePin,  0,   current.coolWhite );
     }
+END_REPEAT
 }
 
 extern void weatherInit(void)
@@ -76,22 +82,27 @@ StateFunction( morning )
 {
     if( sm.entryState() )
     {
-        set.red         = 10 ;  // invullen naar believen, kleiner houden dan 4095 ( = 100% PWM)
-        set.green       = 10 ;
-        set.blue        = 10 ;
-        set.white       = 10 ;
-        set.coolWhite   = 10 ;
+        Serial.println("morning begins") ;
         
-        sm.setTimeOut( dayTime ) ;
+        set.red         = 600 ;  // invullen naar believen, kleiner houden dan 4095 ( = 100% PWM)
+        set.green       = 0 ;
+        set.blue        = 600 ;
+        set.white       = 1000 ;
+        set.coolWhite   = 0 ;
+        
+        sm.setTimeout( dayTime ) ;
     }
+    
     if( sm.onState() )
     {
-        if( sm.timeOut() ) sm.exit() ;
+        if( sm.timeout() ) sm.exit() ;
     }
+    
     if( sm.exitState() )
     {
-        
+        Serial.println("morning has ended") ;
     }
+    
     return sm.endState() ;
 }
 
@@ -105,13 +116,15 @@ StateFunction( afternoon )
         set.white       = 1200 ;
         set.coolWhite   = 0 ;
         
-        sm.setTimeOut( dayTime ) ;
+        sm.setTimeout( dayTime ) ;
     }
+
     if( sm.onState() )
     {
         
-        if( sm.timeOut() ) sm.exit() ;
+        if( sm.timeout() ) sm.exit() ;
     }
+
     if( sm.exitState() )
     {
         
@@ -119,7 +132,7 @@ StateFunction( afternoon )
     return sm.endState() ;
 }
 
-StateFunction( evenening )
+StateFunction( evening )
 {
     if( sm.entryState() )
     {
@@ -129,13 +142,15 @@ StateFunction( evenening )
         set.white       = 0 ;
         set.coolWhite   = 0 ;
         
-        sm.setTimeOut( dayTime ) ;
+        sm.setTimeout( dayTime ) ;
     }
+
     if( sm.onState() )
     {
         
-        if( sm.timeOut() ) sm.exit() ;
+        if( sm.timeout() ) sm.exit() ;
     }
+
     if( sm.exitState() )
     {
         
@@ -153,13 +168,15 @@ StateFunction( night )
         set.white       = 0 ;
         set.coolWhite   = 0 ;
         
-        sm.setTimeOut( dayTime ) ;
+        sm.setTimeout( dayTime ) ;
     }
+
     if( sm.onState() )
     {
         
-        if( sm.timeOut() ) sm.exit() ;
+        if( sm.timeout() ) sm.exit() ;
     }
+
     if( sm.exitState() )
     {
         
@@ -177,14 +194,16 @@ StateFunction( raining )
         set.white       = 600 ;
         set.coolWhite   = 0 ;
         
-        sm.setTimeOut( dayTime ) ;
+        sm.setTimeout( dayTime ) ;
     }
+
     if( sm.onState() )
     {   
         // loop raining sounds
         
-        if( sm.timeOut() ) sm.exit() ;
+        if( sm.timeout() ) sm.exit() ;
     }
+
     if( sm.exitState() )
     {
         
@@ -194,6 +213,9 @@ StateFunction( raining )
 
 StateFunction( storm )
 {
+    static uint32_t interval ;
+    static uint8_t lightningState ;
+    
     if( sm.entryState() )
     {
         set.red         = 0 ;
@@ -202,18 +224,46 @@ StateFunction( storm )
         set.white       = 600 ;
         set.coolWhite   = 0 ;
         
-        sm.setTimeOut( dayTime ) ;
+        sm.setTimeout( dayTime ) ;
+        flash = false ;
+        
+        interval = 0 ;
+        lightningState = 0 ;
     }
+
     if( sm.onState() )
     {
-        // do flashes and play thunder sound
+        REPEAT_MS( interval )
+        switch( lightningState )
+        {
+        case 0 : // start flash
+            flash = true ;
+            interval = random( 50, 100 ) ;      // flash lasts between 50 and 100ms
+            lightningState = 1 ;
+            break ;
+        
+        case 1: // stop flash
+            flash = false ;
+            interval = random( 100, 2000 ) ;  // wait between 100 and 2000ms to start thunder sound
+            lightningState = 2 ;
+            break ;
 
-        if( sm.timeOut() ) sm.exit() ;
+        case 2: // make thunder sound
+            interval = random( 8000, 15000 ) ;      // new flash between 8 and 15 seconds
+            // mp3.play("thunder.mp3" );            // to be added
+            lightningState = 0 ;
+            break ;
+        }
+        END_REPEAT
+
+        if( sm.timeout() ) sm.exit() ;
     }
+    
     if( sm.exitState() )
     {
-        
+        flash = false ;
     }
+    
     return sm.endState() ;
 }
 
@@ -221,9 +271,7 @@ StateFunction( storm )
 // STATE MACHINE
 extern uint8_t weather()
 {
-    REPEAT_MS( lightInterval ) ;
     updateLighting() ;
-    END_REPEAT
     
     STATE_MACHINE_BEGIN
 
@@ -234,10 +282,10 @@ extern uint8_t weather()
 
     State(afternoon) {
         uint8_t val = random(2);
-        if( val != 1 ) sm.nextState( evenening, 0 ) ; // chance 66% it won't storm
+        if( val != 1 ) sm.nextState( evening, 0 ) ; // chance 66% it won't storm
         else           sm.nextState( storm,     0 ) ; }
 
-    State(evenening) {
+    State(evening) {
         sm.nextState( night, 0 ) ; }
 
     State(night) {
@@ -245,7 +293,7 @@ extern uint8_t weather()
 
     State(raining) {
         uint8_t val = random(2);
-        if( val != 1 ) sm.nextState( evenening, 0 ) ; // chance 66% it won't storm
+        if( val != 1 ) sm.nextState( evening, 0 ) ; // chance 66% it won't storm
         else           sm.nextState( storm,     0 ) ; }
 
     State(storm) {

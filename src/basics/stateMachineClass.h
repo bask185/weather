@@ -26,6 +26,7 @@ public:
     
     void setTimeout( uint32_t ) ;
     uint8_t timeout() ;
+    uint8_t repeat( uint16_t _interval ) ;
     void exit() ;
     void reboot() ;
     uint8_t endState() ;

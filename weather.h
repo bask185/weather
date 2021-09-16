@@ -3,7 +3,7 @@ enum weatherStates
     weatherIDLE,
     morning,
     afternoon,
-    evenening,
+    evening,
     night,
     raining,
     storm

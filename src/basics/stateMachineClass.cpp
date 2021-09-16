@@ -87,7 +87,7 @@ uint8_t StateMachine::onState()
  */
 uint8_t StateMachine::exitState()
 {
-    return exitFlag ; ;
+    return exitFlag ;
 }
 
 /**
@@ -139,6 +139,23 @@ uint8_t StateMachine::timeout()
 {
     if( millis() - prevTime >= interval ) return 1 ;
     
+    return 0 ;
+}
+
+/**
+ * @brief keeps repeating the code between the curly brackets {}, is combination of setTimeout() and timeout()
+ *
+ * @param interval
+ *
+ * @return true or false
+ */
+uint8_t StateMachine::repeat( uint16_t _interval )
+{
+    if( millis() - prevTime >= _interval )
+    {
+        prevTime = millis() ;
+        return 1 ;
+    }
     return 0 ;
 }
 
