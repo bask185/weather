@@ -2,13 +2,12 @@
 #include <Arduino.h>
 #include "weather.h"
 #include "src/basics/macros.h"
-#include "src/basics/io.h"
 #include "src/basics/stateMachineClass.h"
 #include "src/modules/Adafruit_PWMServoDriver.h"
 
 static StateMachine sm ;
 
-Adafruit_PWMServoDriver pwmDriver ;
+Adafruit_PWMServoDriver pwmDriver( 0x40 ) ;
 
 // VARIABLES
 static uint16_t redPwm, greenPwm, bluePwm, whitePwm;
@@ -25,6 +24,17 @@ struct
 
 const int dayTime = 5000 ;         // time of each day section in ms
 const int lightInterval = 10 ;
+
+// const int morningRed    = 600 ;
+// const int morningBlue   = 600 ;
+// const int morningWhite  = 1000 ;
+// etc
+
+const int redPin        = 0 ;   // pins on PCA
+const int greenPin      = 1 ;
+const int bluePin       = 2 ;
+const int whitePin      = 3 ;
+const int coolWhitePin  = 4 ;
 
 // FUNCTIONS
 void updateLighting()
@@ -72,9 +82,11 @@ END_REPEAT
 
 extern void weatherInit(void)
 {
-    sm.nextState( morning, 0 ) ;
-    // pwmDriver.setFrequency( 200 ) ;
-    // pwmDriver.setClock(27000000) ;
+    sm.nextState( morning, 0 ) ;    // begin at morning
+
+    pwmDriver.begin() ;
+    pwmDriver.setOscillatorFrequency(27000000) ;
+    pwmDriver.setPWMFreq(200) ;
 }
 
 // STATE FUNCTIONS
@@ -236,13 +248,13 @@ StateFunction( storm )
         REPEAT_MS( interval )
         switch( lightningState )
         {
-        case 0 : // start flash
+        case 0 : // start a flash
             flash = true ;
             interval = random( 50, 100 ) ;      // flash lasts between 50 and 100ms
             lightningState = 1 ;
             break ;
         
-        case 1: // stop flash
+        case 1: // stop the flash
             flash = false ;
             interval = random( 100, 2000 ) ;  // wait between 100 and 2000ms to start thunder sound
             lightningState = 2 ;
