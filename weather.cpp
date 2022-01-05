@@ -1,9 +1,9 @@
 // HEADER FILES
 #include <Arduino.h>
 #include "weather.h"
-#include "src/basics/macros.h"
-#include "src/basics/stateMachineClass.h"
-#include "src/modules/Adafruit_PWMServoDriver.h"
+#include "src/macros.h"
+#include "src/stateMachineClass.h"
+#include "src/Adafruit_PWMServoDriver.h"
 
 static StateMachine sm ;
 
@@ -23,18 +23,14 @@ struct
 } set, current ;
 
 const int dayTime = 5000 ;         // time of each day section in ms
-const int lightInterval = 10 ;
+const int lightInterval = 500 ;
 
-// const int morningRed    = 600 ;
-// const int morningBlue   = 600 ;
-// const int morningWhite  = 1000 ;
-// etc
 
 const int redPin        = 0 ;   // pins on PCA
-const int greenPin      = 1 ;
-const int bluePin       = 2 ;
-const int whitePin      = 3 ;
-const int coolWhitePin  = 4 ;
+const int greenPin      = 15 ;
+const int bluePin       = 12 ;
+const int whitePin      = 13 ;
+const int coolWhitePin  = 14 ;
 
 // FUNCTIONS
 void updateLighting()
@@ -96,10 +92,16 @@ StateFunction( morning )
     {
         Serial.println("morning begins") ;
         
-        set.red         = 600 ;  // invullen naar believen, kleiner houden dan 4095 ( = 100% PWM)
-        set.green       = 0 ;
-        set.blue        = 600 ;
-        set.white       = 1000 ;
+        // set.red         = 600 ;  // invullen naar believen, kleiner houden dan 4095 ( = 100% PWM)
+        // set.green       = 0 ;
+        // set.blue        = 600 ;
+        // set.white       = 1000 ;
+        // set.coolWhite   = 0 ;
+
+        set.red         = 4095 ;  // invullen naar believen, kleiner houden dan 4095 ( = 100% PWM)
+        set.green       = 4095 ;
+        set.blue        = 4095 ;
+        set.white       = 4095 ;
         set.coolWhite   = 0 ;
         
         sm.setTimeout( dayTime ) ;
@@ -107,7 +109,7 @@ StateFunction( morning )
     
     if( sm.onState() )
     {
-        if( sm.timeout() ) sm.exit() ;
+        //if( sm.timeout() ) sm.exit() ;
     }
     
     if( sm.exitState() )
